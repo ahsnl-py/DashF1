@@ -1,0 +1,14 @@
+dash==2.0.0
+dash-bootstrap-components==1.0.2
+dash-core-components==2.0.0
+dash-html-components==2.0.0
+dash-table==5.0.0
+Flask==1.1.2
+Flask-Compress==1.10.1
+Flask-SQLAlchemy==2.5.1
+gunicorn==20.1.0
+numpy==1.20.2
+pandas==1.2.3
+plotly==5.4.0
+psycopg2==2.9.2
+SQLAlchemy==1.4.28
