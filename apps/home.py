@@ -177,7 +177,6 @@ layout = dbc.Container([
     ],
 )
 def render_tab_content(active_tab, year, drivers):
-    print(active_tab, year, drivers)
     """
     This callback takes the 'active_tab' property as input, as well as the
     stored graphs, and renders the tab content depending on what the value of
