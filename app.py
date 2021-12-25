@@ -25,10 +25,10 @@ server = app.server
 server.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 # for your home PostgreSQL test table
-server.config["SQLALCHEMY_DATABASE_URI"] = "postgresql://postgres:BlackHeist197@localhost/postgres"
+# server.config["SQLALCHEMY_DATABASE_URI"] = "postgresql://postgres:BlackHeist197@localhost/postgres"
 
 # for your live Heroku PostgreSQL database
-# app.server.config["SQLALCHEMY_DATABASE_URI"] = "postgres://gehhvfyrvfuptd:4376c3e910f1b958715a4828aa0d2628c02223b6e5e10000610de23f2226eeab@ec2-54-74-14-109.eu-west-1.compute.amazonaws.com:5432/ddmgclh4fpen7r"
+app.server.config["SQLALCHEMY_DATABASE_URI"] = "postgres://gehhvfyrvfuptd:4376c3e910f1b958715a4828aa0d2628c02223b6e5e10000610de23f2226eeab@ec2-54-74-14-109.eu-west-1.compute.amazonaws.com:5432/ddmgclh4fpen7r"
 
 db = SQLAlchemy(server)
 
