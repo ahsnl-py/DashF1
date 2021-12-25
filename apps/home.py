@@ -12,6 +12,9 @@ season_list = list()
 for i in range(2011, 2022):
     season_list.append(i)
 
+"""
+LIST OF FUNCTIONS TO RETRIEVE DATA FROM POSTGRES DB REG. DRIVER INFO
+"""
 def get_sesson_race_results(year, driver):
     driver_list = tuple(driver)
     sql = f""" SELECT racedate as date
@@ -67,16 +70,17 @@ def create_table_overview(year, driver):
                 columns=[{"name": i, "id": i, "deletable": True} for i in df.columns],
                 data=df.to_dict("records"),
                 page_size=10,
-                editable=True,
-                cell_selectable=True,
-                filter_action="native",
-                sort_action="native",
-                style_table={"overflowX": "auto"},
+                page_current=0,
+                style_header={"backgroundColor": "white", "fontWeight": "bold"},
+                style_cell={"textAlign": "center"},
+                style_cell_conditional=[
+                    {"if": {"column_id": "Finished"}, "textAlign": "center"}
+                ],
+                style_as_list_view=True,
     )
     return table
 
 def get_driver_list(year):
-    year = 2021
     sql = f"""  
             SELECT DISTINCT vwgr.driver, concat(ltrim(fd.forename),' ',ltrim(fd.surname))
             FROM get_race_running_total_points vwgr 
@@ -85,9 +89,65 @@ def get_driver_list(year):
             WHERE extract(year from vwgr.racedate) = {year} """                     
     df_dl = pd.read_sql_query(sql, con=db.engine)
     return df_dl.values.tolist()
+# functions methods for driver info
 
 
+"""
+LIST OF FUNCTIONS TO RETRIEVE DATA FROM POSTGRES DB REG. DRIVER INFO
+"""
+def get_team_standing_by_year_piechart(year):
+    fig = go.Figure()    
+    # select from function db
+    sql = f""" SELECT * FROM func_get_constr_stand_year({year}) """
+    df_ts = pd.read_sql_query(sql, con=db.engine)
 
+    constructor = list(df_ts.team)
+    points = list(df_ts.points)
+    df_ts['percent'] = (df_ts['points'] / df_ts['points'].sum()) * 100
+    df_ts.percent = [0.1 if (p < 10.0 and p != 0) else 0 for p in df_ts.percent]
+
+    fig.add_trace(
+        go.Pie( 
+            labels=constructor
+            , values=points
+            , hole=0.3
+            , pull=list(df_ts.percent)
+        )
+    )           
+    fig.update_traces(textinfo="percent")
+    fig.update_layout(
+        legend_orientation="v",
+        annotations=[dict(text=str(year), font_size=16, showarrow=False, x=0.5, y=0.5)],
+        showlegend=True,
+        margin=dict(l=0, r=0, t=0, b=0),
+       
+    )
+
+    return fig #return graph for pie charts
+
+def get_team_standing_by_year_table(year): 
+    # select from function db
+    sql = f""" SELECT * FROM func_get_constr_stand_year({year}) """
+    df_ts = pd.read_sql_query(sql, con=db.engine)
+
+    table = dash_table.DataTable(
+            id="table",
+            columns=[{"name": i, "id": i, "deletable": True} for i in df_ts.columns],
+            data=df_ts.to_dict("records"),
+            page_current=0,
+            style_header={"backgroundColor": "white", "fontWeight": "bold"},
+            style_cell={"textAlign": "center"},
+            style_cell_conditional=[
+                {"if": {"column_id": "Finished"}, "textAlign": "center"}
+            ],
+            style_as_list_view=True,
+    )
+    return table
+
+"""
+CONTENT SECTIONS FOR DRIVERS: 
+    wrap variable: dropdown_driver, dropdown_year, tab_dcss -> layout 
+"""
 dropdown_driver = html.Div(children=
     [
         html.H6("Select Driver(s)"),
@@ -110,7 +170,8 @@ dropdown_year = html.Div(
             ],
             value=2021,
         ),
-])
+    ]
+)
 
 #driver current session running
 tab_dcss = html.Div(children=[
@@ -126,8 +187,51 @@ tab_dcss = html.Div(children=[
         html.Div(id="tab-content", className="p-4") #children=[dcc.Graph(figure=fig_running_total)]
     ]
 )
+# end content sections for drivers
 
+"""
+CONTENT SECTIONS FOR TEAMS: 
+    wrap variable: dropdown_team, dropdown_year_cons, tab_tcss -> layout 
+"""
+dropdown_team = html.Div(children=
+    [
+        html.H6("Select Team(s)"),
+        dcc.Loading(
+            children=[
+                dcc.Dropdown(id="teams-dropdown", multi=True)
+            ],
+            type="circle",
+        ),
+    ]
+)
 
+dropdown_year_cons = html.Div(
+    [
+        html.H6("Select Year"),
+        dcc.Dropdown(
+            id="year-dropdown-team",
+            options=[
+                {"label": i, "value": i} for i in season_list
+            ],
+            value=2021,
+        ),
+    ]
+)
+
+#team current session running
+tab_tcss = html.Div(children=[
+        dbc.Tabs(
+            [
+                dbc.Tab(label="PieChart", tab_id="piechart"),
+                dbc.Tab(label="Table", tab_id="table"),
+                # dbc.Tab(label="Table", tab_id="table"),
+            ],
+            id="tabs-team",
+            active_tab="piechart",
+        ),
+        html.Div(id="tab-content-team") #children=[dcc.Graph(figure=fig_running_total)]
+    ]
+)
 
 layout = dbc.Container([
         dbc.Row([
@@ -150,9 +254,8 @@ layout = dbc.Container([
                     ],
                     className="p-4",
                 ), 
-
         ]),
-        # mid: content 
+        # mid: driver 
         html.Div(children=[
             html.P("Driver current standings", className="h3 my-4 fst-normal")
         ]),
@@ -162,12 +265,29 @@ layout = dbc.Container([
             dbc.Col(dropdown_driver)
         ]),
         dbc.Row(
-            [tab_dcss]
+            [tab_dcss] #content drivers 
+            ,className="mt-4 pd-2"
+        ),
+        # end: team 
+        html.Div(children=[
+            html.P("Team current standings", className="h3 my-4 fst-normal")
+        ]),
+        dbc.Row(dropdown_year_cons),
+        dbc.Row(
+            [tab_tcss] #content team 
             ,className="mt-4 pd-2"
         ),
     ]
 )
 
+
+"""
+CALLBACK FOR DRRIVERS: 
+    This callback takes the 'active_tab', 'year', 'drivers' property as input
+    main callback: 
+        > render_tab_content
+        >
+"""
 @app.callback(
     Output("tab-content", "children"),
     [
@@ -177,11 +297,6 @@ layout = dbc.Container([
     ],
 )
 def render_tab_content(active_tab, year, drivers):
-    """
-    This callback takes the 'active_tab' property as input, as well as the
-    stored graphs, and renders the tab content depending on what the value of
-    'active_tab' is.
-    """
     if active_tab is not None:
         if active_tab == "scatter":
             fig_running_total = get_sesson_race_results(year, drivers)
@@ -211,3 +326,30 @@ def get_default_drivers(year):
         dd_list.append(driver[0])
     
     return dd_list[:6]
+
+"""
+CALLBACK FOR TEAM: 
+    This callback takes the 'active_tab', 'year', 'drivers' property as input
+    main callback: 
+        > render_tab_content
+        >
+# """
+@app.callback(
+    Output("tab-content-team", "children"),
+    [
+          Input("tabs-team", "active_tab")
+        , Input("year-dropdown-team", "value")        
+    ],
+)
+def render_tab_content_team(active_tab, year):
+    if active_tab is not None:
+        if active_tab == "piechart":
+            return dcc.Graph(figure=get_team_standing_by_year_piechart(year))
+        elif active_tab == "table":
+            table = get_team_standing_by_year_table(year)
+            return table
+        # elif active_tab == "table":
+        #     data = create_table_overview(year, drivers)
+        #     return data
+            
+    return "No tab selected"

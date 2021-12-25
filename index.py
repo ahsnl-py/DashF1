@@ -8,7 +8,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 
 from app import app, server 
-from apps import driver_stand, driver_point_sessions, home  
+from apps import home  
 
 
 PLOTLY_LOGO = "https://images.plot.ly/logo/new-branding/plotly-logomark.png"
@@ -20,7 +20,7 @@ content_nav = dbc.Row(
     [
         dbc.Nav(
             [
-                dbc.NavItem(dbc.NavLink("Active", active=True, href="#")),
+                dbc.NavItem(dbc.NavLink("Home", active=True, href="/")),
                 dbc.NavItem(dbc.NavLink("A link", href="#")),
                 dbc.NavItem(dbc.NavLink("Another link", href="#")),
                 dbc.NavItem(dbc.NavLink("Disabled", disabled=True, href="#")),
@@ -93,10 +93,10 @@ def toggle_navbar_collapse(n, is_open):
 def display_page(pathname):
     if pathname == "/":
         return home.layout
-    elif pathname == '/apps/driver_stand':
-        return driver_stand.layout
-    elif pathname == '/apps/driver_point_sessions':
-        return driver_point_sessions.layout
+    # elif pathname == '/apps/driver_stand':
+    #     return driver_stand.layout
+    # elif pathname == '/apps/driver_point_sessions':
+    #     return driver_point_sessions.layout
     else:
         return "404 Page Error! Please choose a link"
 
