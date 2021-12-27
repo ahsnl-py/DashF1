@@ -57,12 +57,11 @@ def get_total_driver_points(year, driver):
 def create_table_overview(year, driver):
     driver_list = tuple(driver)
     sql = f"""
-            select racedate, racetrackname, driverno as carnumber, driver as drivercode
-					,laptime as fastestlaptime, pointbyrank as points
-			from public.get_quali_results
-			WHERE extract(year from racedate) = {year} 
-                AND driver IN {driver_list}
+            select * from 
+            public.func_get_driver_stand_year({year}) 
+            where drivercode in {driver_list}
             """
+    print(driver_list)
     df = pd.read_sql_query(sql, con=db.engine)
 
     table = dash_table.DataTable(
@@ -145,6 +144,25 @@ def get_team_standing_by_year_table(year):
     return table
 
 """
+CONTENT HEADER: 
+    Little introductions 
+"""
+card_content = [
+    dbc.CardHeader(["WELCOME TO F1STATS!"], style={"background-color": "rgba(235 245 255)",}),
+    dbc.CardBody(
+        [
+            dcc.Markdown(
+                """
+                This web application produces race results, driver and constructor rankings, up-to-date timetables, circuit layouts, and comparisons of Formula 1 seasons from 1950 to the present.
+                Built with Python, [Dash](https://plotly.com/dash/), and the [Ergast Developer API](http://ergast.com/mrd/) (Motor Racing Data), this application provides users an in-depth look at the numbers behind Formula 1.
+                Questions, comments, or concerns? Feel free to reach out on [LinkedIn](https://www.linkedin.com/in/jeonchristopher/) and check out the source code [here](https://github.com/christopherjeon/F1STATS-public).
+                """,
+            )
+        ]
+    ),
+]
+
+"""
 CONTENT SECTIONS FOR DRIVERS: 
     wrap variable: dropdown_driver, dropdown_year, tab_dcss -> layout 
 """
@@ -184,7 +202,7 @@ tab_dcss = html.Div(children=[
             id="tabs",
             active_tab="scatter",
         ),
-        html.Div(id="tab-content", className="p-4") #children=[dcc.Graph(figure=fig_running_total)]
+        html.Div(id="tab-content") #children=[dcc.Graph(figure=fig_running_total)]
     ]
 )
 # end content sections for drivers
@@ -233,27 +251,14 @@ tab_tcss = html.Div(children=[
     ]
 )
 
+"""
+EXPORTED CONTENT TO index
+"""
 layout = dbc.Container([
         dbc.Row([
-                # start: Intro and Info 
-                dbc.Card(children=
-                    [
-                        dbc.CardHeader("WELCOME TO F1STATS!"),
-                        dbc.CardBody(children=
-                            [
-                                dcc.Markdown(
-                                    """
-                                    This web application produces race results, driver and constructor rankings, up-to-date timetables, circuit layouts, and comparisons of Formula 1 seasons from 1950 to the present.
-                                    Built with Python, [Dash](https://plotly.com/dash/), and the [Ergast Developer API](http://ergast.com/mrd/) (Motor Racing Data), this application provides users an in-depth look at the numbers behind Formula 1.
-                                    Questions, comments, or concerns? Feel free to reach out on [LinkedIn](https://www.linkedin.com/in/jeonchristopher/) and check out the source code [here](https://github.com/christopherjeon/F1STATS-public).
-                                    """,
-                                    # style={"margin": "0 10px"},
-                                )
-                            ]
-                        ),
-                    ],
-                    className="p-4",
-                ), 
+            dbc.Col(
+                    dbc.Card(card_content, color="light")
+                ),
         ]),
         # mid: driver 
         html.Div(children=[
@@ -275,9 +280,9 @@ layout = dbc.Container([
         dbc.Row(dropdown_year_cons),
         dbc.Row(
             [tab_tcss] #content team 
-            ,className="mt-4 pd-2"
+            ,className="my-4 pd-2"
         ),
-    ]
+    ], className="mt-4"
 )
 
 
@@ -285,8 +290,9 @@ layout = dbc.Container([
 CALLBACK FOR DRRIVERS: 
     This callback takes the 'active_tab', 'year', 'drivers' property as input
     main callback: 
-        > render_tab_content
-        >
+        > render_tab_content 
+        > update_driver_dropdown
+        > get_default_drivers
 """
 @app.callback(
     Output("tab-content", "children"),
@@ -310,7 +316,10 @@ def render_tab_content(active_tab, year, drivers):
             
     return "No tab selected"
 
-@app.callback(Output("driver-dropdown", "options"), [Input("year-dropdown", "value")])
+@app.callback(
+    Output("driver-dropdown", "options")
+    , [Input("year-dropdown", "value")]
+)
 def update_driver_dropdown(year):
     drivers = get_driver_list(year)
     options = []
@@ -318,7 +327,10 @@ def update_driver_dropdown(year):
         options.append({"label": driver[1], "value": driver[0]})
     return options
 
-@app.callback(Output("driver-dropdown", "value"), [Input("year-dropdown", "value")])
+@app.callback(
+    Output("driver-dropdown", "value")
+    , [Input("year-dropdown", "value")]
+)
 def get_default_drivers(year):
     default_drivers = get_driver_list(year)
     dd_list = []
@@ -337,7 +349,7 @@ CALLBACK FOR TEAM:
 @app.callback(
     Output("tab-content-team", "children"),
     [
-          Input("tabs-team", "active_tab")
+        Input("tabs-team", "active_tab")
         , Input("year-dropdown-team", "value")        
     ],
 )
@@ -353,3 +365,42 @@ def render_tab_content_team(active_tab, year):
         #     return data
             
     return "No tab selected"
+
+
+# use later
+# card = dbc.Card(
+#     [
+#         dbc.Row(
+#             [
+#                 dbc.Col(
+#                     dbc.CardImg(
+#                         src="/static/images/portrait-placeholder.png",
+#                         className="img-fluid rounded-start",
+#                     ),
+#                     className="col-md-4",
+#                 ),
+#                 dbc.Col(
+#                     dbc.CardBody(
+#                         [
+#                             html.H4("Card title", className="card-title"),
+#                             html.P(
+#                                 "This is a wider card with supporting text "
+#                                 "below as a natural lead-in to additional "
+#                                 "content. This content is a bit longer.",
+#                                 className="card-text",
+#                             ),
+#                             html.Small(
+#                                 "Last updated 3 mins ago",
+#                                 className="card-text text-muted",
+#                             ),
+#                         ]
+#                     ),
+#                     className="col-md-8",
+#                 ),
+#             ],
+#             className="g-0 d-flex align-items-center",
+#         )
+#     ],
+#     className="mb-3",
+#     style={"maxWidth": "540px"},
+# )
