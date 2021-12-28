@@ -10,6 +10,8 @@ import plotly.graph_objects as go
 
 from app import app, server 
 from apps import home, drivers, seasons, tracks, schedule
+from apps import home  
+from apps import schedule
 
 
 PLOTLY_LOGO = "https://images.plot.ly/logo/new-branding/plotly-logomark.png"
@@ -26,7 +28,7 @@ content_nav = dbc.Row(
                 dbc.NavItem(dbc.NavLink("Seasons", active=True, href="/seasons")),
                 dbc.NavItem(dbc.NavLink("Schedule", active=True, href="/schedule")),
                 dbc.NavItem(dbc.NavLink("Tracks", active=True, href="/tracks")),
-                dbc.NavItem(dbc.NavLink("Disabled", disabled=True, href="#")),
+                dbc.NavItem(dbc.NavLink("Schedule", href="/schedule")),
                 dbc.DropdownMenu(
                     [dbc.DropdownMenuItem("Item 1"), dbc.DropdownMenuItem("Item 2")],
                     label="Dropdown",
@@ -102,6 +104,8 @@ def display_page(pathname):
         return schedule.layout
     elif pathname == "/tracks":
         return tracks.layout
+    elif pathname == "/schedule":
+        return schedule.layout
     else:
         return "404 Page Error! Please choose a link"
 
