@@ -2,7 +2,7 @@ import time
 from numpy import empty
 from dash.exceptions import PreventUpdate
 import dash_bootstrap_components as dbc
-from dash import html, dcc, Input, Output, dash_table
+from dash import html, dcc, Input, Output, dash_table, State, MATCH
 from app import app, db
 
 import pandas as pd
@@ -28,7 +28,8 @@ def get_driver_stand_year(year):
                 SELECT *, ROW_NUMBER() OVER(ORDER BY t.points DESC) AS rank
                 FROM (
                     select distinct 
-                            team
+                            driver_id
+			                , team
                             , driver_fullname as driver
                             , driver_code       
                             , driver_number as drivernumber
@@ -50,6 +51,32 @@ def get_driver_stand_year(year):
     splitted = df_dsy['driver'].str.split()
     df_dsy['firstname'] = splitted.str[0]
     return generate_driver_card(df_dsy.to_dict())
+
+def get_driver_stats(year, id):
+    query = f"""
+                SELECT *
+                    , round(total_podiums/SUM(total_podiums) over(order by (select null)), 2) percentage_win_race
+                FROM (
+                    select driver_id, driver_fullname
+                        , sum(iswin) total_win
+                        , sum(is_second) total_win_runner_up
+                        , sum(is_third)	total_win_third
+                        , sum(point) total_point_race
+                        , round(avg(point), 2) average_point_gp
+                        , (sum(iswin) + sum(is_second) + sum(is_third)) total_podiums 
+                    from public.vw_race_results
+                    where year = cast({year} as char(4))
+                        and driver_id = cast({id} as int)
+                    group by driver_id, driver_fullname
+                ) t
+            """
+    df_gds = pd.read_sql_query(query, con=db.engine)
+
+    return df_gds
+
+
+
+
 """
 COMPONENTS TO RENDER:
     > Cards 
@@ -68,6 +95,7 @@ def generate_driver_card(df_dict):
         ,[ t for t in df_dict['firstname'].values()]    # 7 driver firstname
         ,[ t for t in df_dict['drivernumber'].values()] # 8 driver number
         ,[ t for t in df_dict['colorhex'].values()]     # 9 team color code
+        ,[ t for t in df_dict['driver_id'].values()]    # 10 driver id -- unique identified of driver
     ))    
 
     card_content = list()
@@ -77,22 +105,41 @@ def generate_driver_card(df_dict):
         else:
             wins_badge = html.Div("")
 
-        accordion = html.Div(
-            dbc.Accordion(
-                [
-                    dbc.AccordionItem(
-                        "This is the content of the first section", title=f"{d[7]} stats"
-                    ),
-                ],
-                start_collapsed=True,
-                flush=True,
-            ),
-        )
 
         if d[9] == 'no_color':
             style_header = {"background-color": '#f6efd0',}
         else:
             style_header = {"background-color": f"{d[9]}",}
+
+        accordion_t =   dbc.Accordion(
+            [
+                dbc.AccordionItem(
+                    html.Div(id="accordion-driver"),
+                    title="Item 1",
+                    item_id=f"{d[10]}",
+                ),
+            ],
+            id="accordion",            
+        )
+
+        accordion =   dbc.Accordion(
+            [
+                dbc.AccordionItem(
+                    html.Div(id={
+                        'type': "accordion-driver",
+                        'index': f'{d[10]}'
+                    }),
+                    title="Item 1",
+                    item_id=f"{d[10]}",
+                ),
+            ],
+            # id="accordion", 
+            id={
+                'type': "accordion",
+                'index': f'{d[10]}'
+            },
+            # start_collapsed=True,           
+        )
 
         card = [
             dbc.CardHeader(
@@ -138,7 +185,7 @@ def generate_driver_card(df_dict):
         ]
 
         card_content.append(card)
-
+    
     return card_content
 
 dropdown_year_cons = html.Div(
@@ -153,6 +200,7 @@ dropdown_year_cons = html.Div(
         ),
     ]
 )
+
 
 def get_gp_name(year):
     query = f"""
@@ -183,6 +231,8 @@ gp_slider = dcc.Slider(
 )
 
 
+
+
 layout = html.Div([
     dbc.Container(
         dbc.Alert(
@@ -207,10 +257,10 @@ layout = html.Div([
 
 @app.callback(
     Output('cards', 'children'),
-    Input('session-year-input', 'value')
+    Input('session-year-input', 'value'),
+    # Input('collapse-button', 'n_clicks'),
 )
 def get_card_layout(year):
-    #init list 
     content_card = []
     cards_driver = get_driver_stand_year(year)
     card_list = list()
@@ -231,3 +281,15 @@ def get_card_layout(year):
         ])
     # time.sleep(20)
     return cards_driver
+
+@app.callback(
+    # Output("accordion-driver", "children"),
+    Output({'type': "accordion-driver", 'index': MATCH}, "children"),
+    [
+        # Input("accordion", "active_item"),
+        Input(component_id={'type': "accordion", 'index': MATCH}, component_property='active_item'),
+    ],
+)
+def change_item(item):
+    print(item)
+    return f"Item selected: {item}"
