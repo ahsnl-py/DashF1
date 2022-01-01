@@ -2,7 +2,8 @@ import time
 from numpy import empty
 from dash.exceptions import PreventUpdate
 import dash_bootstrap_components as dbc
-from dash import html, dcc, Input, Output, dash_table, State, MATCH
+from dash import html, dcc, Input, Output, MATCH
+import plotly.express as px
 from app import app, db
 
 import pandas as pd
@@ -120,7 +121,6 @@ def generate_driver_card(df_dict, year):
                     item_id=f"{d[10]}",
                 ),
             ],
-            # id="accordion", 
             id={
                 'type': "accordion",
                 'index': f'{d[2]}'
@@ -281,6 +281,7 @@ def change_item(id, year):
         driver_stats = get_driver_stats(year, id)
         ds_list = driver_stats.values.tolist()        
         for item in ds_list:
+
             """ to get location of a list of items
                 from get_driver_stats(): 
                     total_win               -> 2
@@ -291,6 +292,35 @@ def change_item(id, year):
                     total_podiums           -> 7
                     win_ratio               -> 8
             """
+            y_axis = [item[2], item[3], item[4]]
+            x_axis = [1, 2, 3]
+            
+            df = pd.DataFrame({'x': x_axis, 'y':y_axis}, columns=['x', 'y'])
+            fig = px.bar(df, x='x', y='y', text='y')
+            fig.update_layout(
+                yaxis_title="Podiums Wins"
+                , plot_bgcolor="#fff"
+                , font=dict(
+                    family="Courier New, monospace",
+                    size=12,
+                    color="RebeccaPurple"
+                )
+                , autosize=False
+                , width=400
+                , height=110
+                , margin=dict(
+                    l=50,
+                    r=20,
+                    b=0,
+                    t=0
+                    # pad=4
+                ),
+                yaxis=dict(
+                    visible=False, showticklabels=False
+                )
+            )
+            
+            # fig.update_yaxes()
             list_group = dbc.ListGroup(
                 [
                     dbc.ListGroupItem([
@@ -311,8 +341,16 @@ def change_item(id, year):
                         ], 
                         className="d-flex justify-content-between align-items-center",
                     ),
+                    # dbc.ListGroupItem([
+                    #         dcc.Graph(
+                    #             figure=fig
+                    #         )
+                    #     ]
+                    # ),
                 ],
                 flush=True,
             )
     
         return list_group
+
+        

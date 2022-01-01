@@ -26,11 +26,6 @@ LIST OF FUNCTIONS TO RETRIEVE DATA FROM POSTGRES DB REG. DRIVER INFO
 def get_sesson_race_results(year, driver):
     # driver_list = tuple(driver)
     driver_id_list = tuple(driver)
-    sql = f""" SELECT racedate as date
-                    , driver, pointrunningtotal 
-            FROM get_race_running_total_points 
-            WHERE extract(year from racedate) = {year}
-             """
     query = f"""
                 SELECT race_date        as Date
                     , driver_fullname   as Driver
@@ -54,14 +49,7 @@ def get_sesson_race_results(year, driver):
 
 #get total driver points by sessions
 def get_total_driver_points_bar(year, driver):    
-    driver_list = tuple(driver)
     driver_id_list = tuple(driver)
-    sql = f""" SELECT driver, sum(pointbyrank) as totalpointdriver 
-            FROM get_quali_results
-            WHERE extract(year from racedate) = {year} 
-                AND driver IN {driver_list}
-            GROUP BY driver """
-
     query = f"""
                 SELECT distinct driver_ref, total_points 
                 FROM public.udf_driver_stand_yearly({year})
@@ -79,14 +67,7 @@ def get_total_driver_points_bar(year, driver):
     return df_total
 
 def create_table_overview(year, driver):
-    driver_list = tuple(driver)
     driver_id_list = tuple(driver)
-    sql = f"""
-            select * from 
-            public.func_get_driver_stand_year({year}) 
-            where drivercode in {driver_list}
-            """    
-
     query = f"""
                 SELECT distinct team, driver_fullname, driver_number
                     , driver_nationality, total_points, win_total, rank
@@ -121,14 +102,6 @@ def create_table_overview(year, driver):
     return table
 
 def get_driver_list(year):
-    year_str = year
-    sql = f"""  
-            SELECT DISTINCT vwgr.driver, concat(ltrim(fd.forename),' ',ltrim(fd.surname))
-            FROM get_race_running_total_points vwgr 
-            left JOIN factdrivers fd 
-                ON (vwgr.driver = fd.code AND vwgr.driverno = fd.number)
-            WHERE extract(year from vwgr.racedate) = {year} """       
-
     query = f"""
                 SELECT distinct driver_id, driver_fullname
                 FROM public.udf_driver_stand_yearly({year})
@@ -144,7 +117,6 @@ LIST OF FUNCTIONS TO RETRIEVE DATA FROM POSTGRES DB REG. TEAM INFO
 def get_team_standing_by_year_piechart(year):
     fig = go.Figure()    
     # select from function db
-    sql = f""" SELECT * FROM func_get_constr_stand_year({year}) """
     query = f""" select *
                  from udf_constructor_stand_yearly({year}) """
     df_ts = pd.read_sql_query(query, con=db.engine)
@@ -174,7 +146,6 @@ def get_team_standing_by_year_piechart(year):
 
 def get_team_standing_by_year_table(year): 
     # select from function db
-    sql = f""" SELECT * FROM func_get_constr_stand_year({year}) """
     query = f""" SELECT constructors_name 
                         ,team_nationality
                         ,total_point 
