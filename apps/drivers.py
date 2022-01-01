@@ -10,20 +10,24 @@ import plotly.express as px
 import plotly.graph_objects as go
 
 
-season_list = list()
-for i in range(2011, 2022):
-    season_list.append(i)
-
+def get_season_list_year():
+    query = f"""
+                    SELECT DISTINCT year FROM vw_race_results ORDER BY YEAR ASC
+            """
+    df_sly = pd.read_sql_query(query, con=db.engine)
+    
+    season_list = list()
+    for i in df_sly['year']:
+        season_list.append(i)
+    
+    return season_list
+        
 """
 GET DATASETS:
     > return driver standings points over the course of selected sessions 
     > return 
 """
-def get_driver_stand_year(year):
-    sql = f"""  select fgds.*, fcc.colorhex
-                from public.func_get_driver_stand_year({year}) fgds
-                inner join public.factconstructorcolor fcc
-                    on fgds.team = fcc.team """  
+def get_driver_stand_year(year): 
     query = f"""
                 SELECT *, ROW_NUMBER() OVER(ORDER BY t.points DESC) AS rank
                 FROM (
@@ -172,13 +176,14 @@ def generate_driver_card(df_dict, year):
     
     return card_content
 
+get_sl = get_season_list_year()
 dropdown_year_cons = html.Div(
     [
         html.H6("Select Year", className="text-light"),
         dcc.Dropdown(
             id="session-year-input",
             options=[
-                {"label": i, "value": i} for i in season_list
+                {"label": i, "value": i} for i in get_sl
             ],
             value=2016,
         ),

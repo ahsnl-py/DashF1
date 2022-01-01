@@ -8,9 +8,17 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 
-season_list = list()
-for i in range(2011, 2022):
-    season_list.append(i)
+def get_season_list_year():
+    query = f"""
+                    SELECT DISTINCT year FROM vw_race_results ORDER BY YEAR ASC
+            """
+    df_sly = pd.read_sql_query(query, con=db.engine)
+    
+    season_list = list()
+    for i in df_sly['year']:
+        season_list.append(i)
+    
+    return season_list
 
 """
 LIST OF FUNCTIONS TO RETRIEVE DATA FROM POSTGRES DB REG. DRIVER INFO
@@ -193,16 +201,16 @@ def get_team_standing_by_year_table(year):
 CONTENT HEADER: 
     Little introductions 
 """
-card_header_style = {"background-color": "rgba(235 245 255)",}
+card_header_style = {"background-color": "#2C3E50",}
 card_content = [
-    dbc.CardHeader(["WELCOME TO F1STATS!"], style=card_header_style),
+    dbc.CardHeader(["WELCOME TO F1STATS!"], style=card_header_style, className="card-title text-light"),
     dbc.CardBody(
         [
             dcc.Markdown(
                 """
-                This web application produces race results, driver and constructor rankings, up-to-date timetables, circuit layouts, and comparisons of Formula 1 seasons from 1950 to the present.
+                This web application produces race results, driver and constructor rankings, and comparisons of Formula 1 seasons from 2011 to the present.
                 Built with Python, [Dash](https://plotly.com/dash/), and the [Ergast Developer API](http://ergast.com/mrd/) (Motor Racing Data), this application provides users an in-depth look at the numbers behind Formula 1.
-                Questions, comments, or concerns? Feel free to reach out on [LinkedIn](https://www.linkedin.com/in/jeonchristopher/) and check out the source code [here](https://github.com/christopherjeon/F1STATS-public).
+                Questions, comments, or concerns? Feel free to reach out on [LinkedIn](https://www.linkedin.com/in/ahsanulnas/) and check out the source code [here](https://github.com/ahsnl-py/DashF1App).
                 """,
             )
         ]
@@ -213,6 +221,7 @@ card_content = [
 CONTENT SECTIONS FOR DRIVERS: 
     wrap variable: dropdown_driver, dropdown_year, tab_dcss -> layout 
 """
+get_sl = get_season_list_year()
 dropdown_driver = html.Div(children=
     [
         html.H6("Select Driver(s)"),
@@ -231,7 +240,7 @@ dropdown_year = html.Div(
         dcc.Dropdown(
             id="year-dropdown",
             options=[
-                {"label": i, "value": i} for i in season_list
+                {"label": i, "value": i} for i in get_sl
             ],
             value=2019,
         ),
@@ -276,7 +285,7 @@ dropdown_year_cons = html.Div(
         dcc.Dropdown(
             id="year-dropdown-team",
             options=[
-                {"label": i, "value": i} for i in season_list
+                {"label": i, "value": i} for i in get_sl
             ],
             value=2019,
         ),
@@ -304,7 +313,7 @@ EXPORTED CONTENT TO index
 layout = dbc.Container([
         dbc.Row([
             dbc.Col(
-                    dbc.Card(card_content, color="light")
+                    dbc.Card(card_content, color="light", className="shadow")
                 ),
         ]),
         # mid: driver 
@@ -350,7 +359,6 @@ CALLBACK FOR DRRIVERS:
     ],
 )
 def render_tab_content(active_tab, year, drivers):
-    print(active_tab, year, drivers)
     if active_tab and year and drivers is not None:
         if active_tab == "scatter":
             fig_running_total = get_sesson_race_results(year, drivers)
