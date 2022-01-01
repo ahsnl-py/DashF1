@@ -50,32 +50,26 @@ def get_driver_stand_year(year):
     # to get first name from fullname
     splitted = df_dsy['driver'].str.split()
     df_dsy['firstname'] = splitted.str[0]
-    return generate_driver_card(df_dsy.to_dict())
+    return generate_driver_card(df_dsy.to_dict(), year)
 
 def get_driver_stats(year, id):
     query = f"""
-                SELECT *
-                    , round(total_podiums/SUM(total_podiums) over(order by (select null)), 2) percentage_win_race
-                FROM (
-                    select driver_id, driver_fullname
-                        , sum(iswin) total_win
-                        , sum(is_second) total_win_runner_up
-                        , sum(is_third)	total_win_third
-                        , sum(point) total_point_race
-                        , round(avg(point), 2) average_point_gp
-                        , (sum(iswin) + sum(is_second) + sum(is_third)) total_podiums 
-                    from public.vw_race_results
-                    where year = cast({year} as char(4))
-                        and driver_id = cast({id} as int)
-                    group by driver_id, driver_fullname
-                ) t
+               select driver_id, driver_fullname
+                    , sum(iswin) total_win
+                    , sum(is_second) total_win_runner_up
+                    , sum(is_third)	total_win_third
+                    , sum(point) total_point_race
+                    , round(avg(point), 2) average_point_gp
+                    , (sum(iswin) + sum(is_second) + sum(is_third)) total_podiums 
+                    , round(cast(sum(iswin) as numeric)/count(gp_name), 2) win_ratio
+                from public.vw_race_results
+                where year = cast({year} as char(4))
+                    and driver_id = cast({id} as int)
+                group by driver_id, driver_fullname
             """
     df_gds = pd.read_sql_query(query, con=db.engine)
 
     return df_gds
-
-
-
 
 """
 COMPONENTS TO RENDER:
@@ -83,7 +77,7 @@ COMPONENTS TO RENDER:
     > Dropdown year -- to view all driver standing and their quick stats
 """
 
-def generate_driver_card(df_dict):
+def generate_driver_card(df_dict, year):
     driver_props_tuple = list(zip(
          [ t for t in df_dict['driver'].values()]       # 0 driver
         ,[ t for t in df_dict['points'].values()]       # 1 points
@@ -111,34 +105,24 @@ def generate_driver_card(df_dict):
         else:
             style_header = {"background-color": f"{d[9]}",}
 
-        accordion_t =   dbc.Accordion(
-            [
-                dbc.AccordionItem(
-                    html.Div(id="accordion-driver"),
-                    title="Item 1",
-                    item_id=f"{d[10]}",
-                ),
-            ],
-            id="accordion",            
-        )
-
         accordion =   dbc.Accordion(
             [
                 dbc.AccordionItem(
                     html.Div(id={
                         'type': "accordion-driver",
-                        'index': f'{d[10]}'
+                        'index': f'{d[2]}'
                     }),
-                    title="Item 1",
+                    title=f"{d[7]} stats: {year}",
                     item_id=f"{d[10]}",
                 ),
             ],
             # id="accordion", 
             id={
                 'type': "accordion",
-                'index': f'{d[10]}'
+                'index': f'{d[2]}'
             },
-            # start_collapsed=True,           
+            start_collapsed=True,        
+            flush=True,   
         )
 
         card = [
@@ -230,9 +214,6 @@ gp_slider = dcc.Slider(
     included=False
 )
 
-
-
-
 layout = html.Div([
     dbc.Container(
         dbc.Alert(
@@ -283,13 +264,50 @@ def get_card_layout(year):
     return cards_driver
 
 @app.callback(
-    # Output("accordion-driver", "children"),
     Output({'type': "accordion-driver", 'index': MATCH}, "children"),
     [
-        # Input("accordion", "active_item"),
         Input(component_id={'type': "accordion", 'index': MATCH}, component_property='active_item'),
+        Input('session-year-input', 'value'),
     ],
 )
-def change_item(item):
-    print(item)
-    return f"Item selected: {item}"
+def change_item(id, year):
+    new_list = list()
+    if id:   
+        driver_stats = get_driver_stats(year, id)
+        ds_list = driver_stats.values.tolist()        
+        for item in ds_list:
+            """ to get location of a list of items
+                from get_driver_stats(): 
+                    total_win               -> 2
+                    total_win_runner_up     -> 3
+                    total_win_third         -> 4
+                    total_point_race        -> 5
+                    average_point_gp        -> 6
+                    total_podiums           -> 7
+                    win_ratio               -> 8
+            """
+            list_group = dbc.ListGroup(
+                [
+                    dbc.ListGroupItem([
+                            html.H6(f"Total Podiums"),
+                            html.P(f"{item[7]}", style={'marginBottom': 0}),
+                        ], 
+                        className="d-flex justify-content-between align-items-center",  
+                    ),
+                    dbc.ListGroupItem([
+                            html.H6(f"Total Points"),
+                            html.P(f"{item[5]} ({item[6]} avg)", style={'marginBottom': 0}),
+                        ], 
+                        className="d-flex justify-content-between align-items-center",
+                    ),
+                    dbc.ListGroupItem([
+                            html.H6(f"Win Ratio"),
+                            html.P(f"{item[8]}", style={'marginBottom': 0}),
+                        ], 
+                        className="d-flex justify-content-between align-items-center",
+                    ),
+                ],
+                flush=True,
+            )
+    
+        return list_group
