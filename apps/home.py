@@ -8,28 +8,39 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 
-season_list = list()
-for i in range(2011, 2022):
-    season_list.append(i)
+def get_season_list_year():
+    query = f"""
+                    SELECT DISTINCT year FROM vw_race_results ORDER BY YEAR ASC
+            """
+    df_sly = pd.read_sql_query(query, con=db.engine)
+    
+    season_list = list()
+    for i in df_sly['year']:
+        season_list.append(i)
+    
+    return season_list
 
 """
 LIST OF FUNCTIONS TO RETRIEVE DATA FROM POSTGRES DB REG. DRIVER INFO
 """
 def get_sesson_race_results(year, driver):
-    driver_list = tuple(driver)
-    sql = f""" SELECT racedate as date
-                    , driver, pointrunningtotal 
-            FROM get_race_running_total_points 
-            WHERE extract(year from racedate) = {year}
-                AND driver IN {driver_list}  """
-
+    # driver_list = tuple(driver)
+    driver_id_list = tuple(driver)
+    query = f"""
+                SELECT race_date        as Date
+                    , driver_fullname   as Driver
+                    , running_total_points as Points
+                FROM public.udf_driver_stand_yearly({year})
+                WHERE driver_id IN {driver_id_list}
+            """
+    
     # get current driver session running total
-    df_running_total = pd.read_sql_query(sql, con=db.engine)
+    df_running_total = pd.read_sql_query(query, con=db.engine)
 
     fig_running_total = px.line(
         df_running_total # datasets from db
         , x='date'
-        , y='pointrunningtotal'
+        , y='points'
         , color='driver'
         , markers=True
         # , template=template_theme1
@@ -37,36 +48,47 @@ def get_sesson_race_results(year, driver):
     return fig_running_total
 
 #get total driver points by sessions
-def get_total_driver_points(year, driver):    
-    driver_list = tuple(driver)
-    sql = f""" SELECT driver, sum(pointbyrank) as totalpointdriver 
-            FROM get_quali_results
-            WHERE extract(year from racedate) = {year} 
-                AND driver IN {driver_list}
-            GROUP BY driver """
-    df = pd.read_sql_query(sql, con=db.engine)
+def get_total_driver_points_bar(year, driver):    
+    driver_id_list = tuple(driver)
+    query = f"""
+                SELECT distinct driver_ref, total_points 
+                FROM public.udf_driver_stand_yearly({year})
+                WHERE driver_id IN {driver_id_list}
+                ORDER BY total_points ASC
+            """
+    df = pd.read_sql_query(query, con=db.engine)
 
     df_total = px.bar(
         df #get datasets from db
-        , x='driver'
-        , y='totalpointdriver'
+        , x='driver_ref'
+        , y='total_points'
         , barmode="group"
     )
     return df_total
 
 def create_table_overview(year, driver):
-    driver_list = tuple(driver)
-    sql = f"""
-            select * from 
-            public.func_get_driver_stand_year({year}) 
-            where drivercode in {driver_list}
+    driver_id_list = tuple(driver)
+    query = f"""
+                SELECT distinct team, driver_fullname, driver_number
+                    , driver_nationality, total_points, win_total, rank
+                FROM public.udf_driver_stand_yearly({year})
+                WHERE driver_id IN {driver_id_list}
+                ORDER BY total_points DESC
             """
-    print(driver_list)
-    df = pd.read_sql_query(sql, con=db.engine)
-
+    df = pd.read_sql_query(query, con=db.engine)
+    df_col_sel = df[['team', 'driver_fullname', 'driver_number', 'driver_nationality', 'total_points', 'win_total', 'rank']]    
+    df_col_sel.rename({
+        'team': 'Team'
+        ,'driver_fullname': 'Driver'
+        ,'driver_number': 'Number'
+        ,'driver_nationality': 'Nationality'
+        ,'total_points':'Points'
+        ,'win_total':'Total Wins'
+        ,'rank':'Rank'
+    }, axis=1)
     table = dash_table.DataTable(
                 id="table",
-                columns=[{"name": i, "id": i, "deletable": True} for i in df.columns],
+                columns=[{"name": i, "id": i, "deletable": True} for i in df_col_sel.columns],
                 data=df.to_dict("records"),
                 page_size=10,
                 page_current=0,
@@ -80,29 +102,27 @@ def create_table_overview(year, driver):
     return table
 
 def get_driver_list(year):
-    sql = f"""  
-            SELECT DISTINCT vwgr.driver, concat(ltrim(fd.forename),' ',ltrim(fd.surname))
-            FROM get_race_running_total_points vwgr 
-            left JOIN factdrivers fd 
-                ON (vwgr.driver = fd.code AND vwgr.driverno = fd.number)
-            WHERE extract(year from vwgr.racedate) = {year} """                     
-    df_dl = pd.read_sql_query(sql, con=db.engine)
+    query = f"""
+                SELECT distinct driver_id, driver_fullname
+                FROM public.udf_driver_stand_yearly({year})
+            """              
+    df_dl = pd.read_sql_query(query, con=db.engine)
     return df_dl.values.tolist()
 # functions methods for driver info
 
 
 """
-LIST OF FUNCTIONS TO RETRIEVE DATA FROM POSTGRES DB REG. DRIVER INFO
+LIST OF FUNCTIONS TO RETRIEVE DATA FROM POSTGRES DB REG. TEAM INFO
 """
 def get_team_standing_by_year_piechart(year):
     fig = go.Figure()    
     # select from function db
-    sql = f""" SELECT * FROM func_get_constr_stand_year({year}) """
-    df_ts = pd.read_sql_query(sql, con=db.engine)
-
-    constructor = list(df_ts.team)
-    points = list(df_ts.points)
-    df_ts['percent'] = (df_ts['points'] / df_ts['points'].sum()) * 100
+    query = f""" select *
+                 from udf_constructor_stand_yearly({year}) """
+    df_ts = pd.read_sql_query(query, con=db.engine)
+    constructor = list(df_ts.constructors_name)
+    points = list(df_ts.total_point)
+    df_ts['percent'] = (df_ts['total_point'] / df_ts['total_point'].sum()) * 100
     df_ts.percent = [0.1 if (p < 10.0 and p != 0) else 0 for p in df_ts.percent]
 
     fig.add_trace(
@@ -116,7 +136,7 @@ def get_team_standing_by_year_piechart(year):
     fig.update_traces(textinfo="percent")
     fig.update_layout(
         legend_orientation="v",
-        annotations=[dict(text=str(year), font_size=16, showarrow=False, x=0.5, y=0.5)],
+        annotations=[dict(text=year, font_size=16, showarrow=False, x=0.5, y=0.5)],
         showlegend=True,
         margin=dict(l=0, r=0, t=0, b=0),
        
@@ -126,8 +146,13 @@ def get_team_standing_by_year_piechart(year):
 
 def get_team_standing_by_year_table(year): 
     # select from function db
-    sql = f""" SELECT * FROM func_get_constr_stand_year({year}) """
-    df_ts = pd.read_sql_query(sql, con=db.engine)
+    query = f""" SELECT constructors_name 
+                        ,team_nationality
+                        ,total_point 
+                        ,total_win 
+                        ,rank
+                FROM public.udf_constructor_stand_yearly({year}) """
+    df_ts = pd.read_sql_query(query, con=db.engine)
 
     table = dash_table.DataTable(
             id="table",
@@ -147,15 +172,16 @@ def get_team_standing_by_year_table(year):
 CONTENT HEADER: 
     Little introductions 
 """
+card_header_style = {"background-color": "#2C3E50",}
 card_content = [
-    dbc.CardHeader(["WELCOME TO F1STATS!"], style={"background-color": "rgba(235 245 255)",}),
+    dbc.CardHeader(["WELCOME TO F1STATS!"], style=card_header_style, className="card-title text-light"),
     dbc.CardBody(
         [
             dcc.Markdown(
                 """
-                This web application produces race results, driver and constructor rankings, up-to-date timetables, circuit layouts, and comparisons of Formula 1 seasons from 1950 to the present.
+                This web application produces race results, driver and constructor rankings, and comparisons of Formula 1 seasons from 2011 to the present.
                 Built with Python, [Dash](https://plotly.com/dash/), and the [Ergast Developer API](http://ergast.com/mrd/) (Motor Racing Data), this application provides users an in-depth look at the numbers behind Formula 1.
-                Questions, comments, or concerns? Feel free to reach out on [LinkedIn](https://www.linkedin.com/in/jeonchristopher/) and check out the source code [here](https://github.com/christopherjeon/F1STATS-public).
+                Questions, comments, or concerns? Feel free to reach out on [LinkedIn](https://www.linkedin.com/in/ahsanulnas/) and check out the source code [here](https://github.com/ahsnl-py/DashF1App).
                 """,
             )
         ]
@@ -166,6 +192,7 @@ card_content = [
 CONTENT SECTIONS FOR DRIVERS: 
     wrap variable: dropdown_driver, dropdown_year, tab_dcss -> layout 
 """
+get_sl = get_season_list_year()
 dropdown_driver = html.Div(children=
     [
         html.H6("Select Driver(s)"),
@@ -184,9 +211,9 @@ dropdown_year = html.Div(
         dcc.Dropdown(
             id="year-dropdown",
             options=[
-                {"label": i, "value": i} for i in season_list
+                {"label": i, "value": i} for i in get_sl
             ],
-            value=2021,
+            value=2019,
         ),
     ]
 )
@@ -229,9 +256,9 @@ dropdown_year_cons = html.Div(
         dcc.Dropdown(
             id="year-dropdown-team",
             options=[
-                {"label": i, "value": i} for i in season_list
+                {"label": i, "value": i} for i in get_sl
             ],
-            value=2021,
+            value=2019,
         ),
     ]
 )
@@ -257,7 +284,7 @@ EXPORTED CONTENT TO index
 layout = dbc.Container([
         dbc.Row([
             dbc.Col(
-                    dbc.Card(card_content, color="light")
+                    dbc.Card(card_content, color="light", className="shadow")
                 ),
         ]),
         # mid: driver 
@@ -303,18 +330,25 @@ CALLBACK FOR DRRIVERS:
     ],
 )
 def render_tab_content(active_tab, year, drivers):
-    if active_tab is not None:
+    if active_tab and year and drivers is not None:
         if active_tab == "scatter":
             fig_running_total = get_sesson_race_results(year, drivers)
             return  dcc.Graph(figure=fig_running_total)
         elif active_tab == "histogram":
-            fig = get_total_driver_points(year, drivers)
+            fig = get_total_driver_points_bar(year, drivers)
             return dcc.Graph(figure=fig)
         elif active_tab == "table":
             data = create_table_overview(year, drivers)
             return data
             
-    return "No tab selected"
+    return html.Div(
+        [
+            dbc.Alert(
+                f" must select one of the following: year or drivers "
+                , color="warning", className = "mt-2 text-center"
+            )
+        ]
+    )
 
 @app.callback(
     Output("driver-dropdown", "options")
