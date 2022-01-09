@@ -150,11 +150,11 @@ def country_card(df):
                                         ]),
 
                                         dbc.Col([
-                                            html.P(children="Circuit with Most Races Held", style=subheading_style),
+                                            html.P(children="Most Races Held", style=subheading_style),
                                             html.H6(children=f"{most_races_held}"),
-                                            html.P(children="Driver with Most Wins", style=subheading_style),
+                                            html.P(children="Most Wins (Driver)", style=subheading_style),
                                             html.H6(children=f"{driver_most_wins}"),
-                                            html.P(children="Constructor with Most Wins", style=subheading_style),
+                                            html.P(children="Most Wins (Constructor)", style=subheading_style),
                                             html.H6(children=f"{const_most_wins}"),
                                         ])
                                     ]
