@@ -11,7 +11,7 @@ import dash_bootstrap_components as dbc
 from dash import Input, Output, html
 
 """
-    CONTENT SOURCE
+    CONTENT SOURCE: Get race available from 2011-onwards
 """
 def get_season_list_year():
     query = f"""
@@ -26,7 +26,10 @@ def get_season_list_year():
     return season_list
         
 """
-    CONTENT GENERATOR
+    CONTENT GENERATOR: Generate three different tab that contains
+        > Winning stats
+        > Fastestes Lap stats
+        > Laps stat -- closer look on each driver completed race during race gp year
 """
 def generate_win_stat(df):
     fig_bar = go.Figure()

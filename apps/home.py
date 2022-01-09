@@ -1,3 +1,4 @@
+from itertools import cycle
 from numpy import empty
 from dash.exceptions import PreventUpdate
 import dash_bootstrap_components as dbc
@@ -43,7 +44,17 @@ def get_sesson_race_results(year, driver):
         , y='points'
         , color='driver'
         , markers=True
-        # , template=template_theme1
+        , color_discrete_sequence=px.colors.qualitative.T10
+    )
+    fig_running_total.update_layout(
+        yaxis=dict(
+            title_text="Points",
+            titlefont=dict(size=16),
+        ),
+        xaxis=dict(
+            title_text="Total Running Point by Driver",
+            titlefont=dict(size=16),
+        )
     )
     return fig_running_total
 
@@ -58,13 +69,26 @@ def get_total_driver_points_bar(year, driver):
             """
     df = pd.read_sql_query(query, con=db.engine)
 
-    df_total = px.bar(
+    fig_total = px.bar(
         df #get datasets from db
-        , x='driver_ref'
-        , y='total_points'
+        , x='total_points'
+        , y='driver_ref'
+        , orientation='h'
         , barmode="group"
+        , color_discrete_sequence=px.colors.qualitative.T10
     )
-    return df_total
+
+    fig_total.update_layout(
+        yaxis=dict(
+            title_text="Driver Name",
+            titlefont=dict(size=16),
+        ),
+        xaxis=dict(
+            title_text="Points",
+            titlefont=dict(size=16),
+        )
+    )
+    return fig_total
 
 def create_table_overview(year, driver):
     driver_id_list = tuple(driver)
@@ -124,7 +148,8 @@ def get_team_standing_by_year_piechart(year):
     points = list(df_ts.total_point)
     df_ts['percent'] = (df_ts['total_point'] / df_ts['total_point'].sum()) * 100
     df_ts.percent = [0.1 if (p < 10.0 and p != 0) else 0 for p in df_ts.percent]
-
+    colors = px.colors.qualitative.T10
+    
     fig.add_trace(
         go.Pie( 
             labels=constructor
@@ -133,13 +158,17 @@ def get_team_standing_by_year_piechart(year):
             , pull=list(df_ts.percent)
         )
     )           
-    fig.update_traces(textinfo="percent")
+    fig.update_traces(
+        hoverinfo='label+percent'
+        , textinfo='value'
+        , textfont_size=20
+        , marker=dict(colors=colors, line=dict(color='#000000', width=2))
+    )
     fig.update_layout(
         legend_orientation="v",
         annotations=[dict(text=year, font_size=16, showarrow=False, x=0.5, y=0.5)],
         showlegend=True,
         margin=dict(l=0, r=0, t=0, b=0),
-       
     )
 
     return fig #return graph for pie charts
@@ -307,7 +336,7 @@ layout = dbc.Container([
         dbc.Row(dropdown_year_cons),
         dbc.Row(
             [tab_tcss] #content team 
-            ,className="my-4 pd-2"
+            ,className="my-4"
         ),
     ], className="mt-4"
 )
