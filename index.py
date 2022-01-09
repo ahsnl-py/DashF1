@@ -9,7 +9,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 
 from app import app, server 
-from apps import home, drivers, seasons
+from apps import home, drivers, seasons, tracks, schedule
 
 
 PLOTLY_LOGO = "https://images.plot.ly/logo/new-branding/plotly-logomark.png"
@@ -24,7 +24,8 @@ content_nav = dbc.Row(
                 dbc.NavItem(dbc.NavLink("Home", active=True, href="/")),
                 dbc.NavItem(dbc.NavLink("Driver", active=True, href="/drivers")),
                 dbc.NavItem(dbc.NavLink("Seasons", active=True, href="/seasons")),
-                dbc.NavItem(dbc.NavLink("Disabled", disabled=True, href="#")),
+                dbc.NavItem(dbc.NavLink("Schedule", active=True, href="/schedule")),
+                dbc.NavItem(dbc.NavLink("Tracks", active=True, href="/tracks")),
                 dbc.DropdownMenu(
                     [dbc.DropdownMenuItem("Item 1"), dbc.DropdownMenuItem("Item 2")],
                     label="Dropdown",
@@ -96,6 +97,10 @@ def display_page(pathname):
         return drivers.layout
     elif pathname == '/seasons':
         return seasons.layout
+    elif pathname == "/schedule":
+        return schedule.layout
+    elif pathname == "/tracks":
+        return tracks.layout
     else:
         return "404 Page Error! Please choose a link"
 

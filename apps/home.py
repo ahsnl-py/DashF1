@@ -343,7 +343,7 @@ layout = dbc.Container([
 
 
 """
-CALLBACK FOR DRRIVERS: 
+CALLBACK FOR DRIVERS: 
     This callback takes the 'active_tab', 'year', 'drivers' property as input
     main callback: 
         > render_tab_content 

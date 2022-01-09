@@ -1,0 +1,9 @@
+@font-face {
+    font-family: "F1-Reg";
+    src: url("fonts/Formula1-Regular.ttf") format("truetype");
+}
+
+@font-face {
+    font-family: "F1-Bold";
+    src: url("fonts/Formula1-Bold.ttf") format("truetype");
+}
