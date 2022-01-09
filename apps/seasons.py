@@ -152,7 +152,7 @@ dropdown_year_cons = html.Div(
     [
         html.H6("Select Year", className="text-light"),
         dcc.Dropdown(
-            id="session-year-input-seasons",
+            id="year-input-seasons",
             options=[
                 {"label": i, "value": i} for i in get_sl
             ],
@@ -199,11 +199,12 @@ layout = html.Div([
 @app.callback(
     Output("content", "children")
     ,[
-        Input("session-year-input-seasons", "value"),
-        Input("tabs-seasons", "active_tab")
+        Input("tabs-seasons", "active_tab"),
+        Input("year-input-seasons", "value"),
+
     ]
 )
-def switch_tab(year, at):
+def switch_tab(at, year):
     if at == "wins-1":
         query = f"""
                     select  driver_fullname
