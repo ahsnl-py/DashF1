@@ -26,7 +26,7 @@ server = app.server
 server.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 # for your home PostgreSQL test table
-# server.config["SQLALCHEMY_DATABASE_URI"] = "postgresql://postgres:BlackHeist197@localhost/devdashf1"
+# server.config["SQLALCHEMY_DATABASE_URI"] = "postgresql://postgres:BlackHeist197@localhost/postgres"
 
 # for your live Heroku PostgreSQL database
 username = 'vhqehuwdwfuyyl'

@@ -167,7 +167,7 @@ def generate_driver_card(df_dict, year):
                         html.H6(f"{d[6]}", className="card-text m-0",),            
                         html.H6(f"{d[4]}", className="card-text",),
                     ], className="d-flex justify-content-between align-items-center  mb-4"),
-                    accordion,
+                    # accordion,
                 ]
             ),
         ]
@@ -292,35 +292,6 @@ def change_item(id, year):
                     total_podiums           -> 7
                     win_ratio               -> 8
             """
-            y_axis = [item[2], item[3], item[4]]
-            x_axis = [1, 2, 3]
-            
-            df = pd.DataFrame({'x': x_axis, 'y':y_axis}, columns=['x', 'y'])
-            fig = px.bar(df, x='x', y='y', text='y')
-            fig.update_layout(
-                yaxis_title="Podiums Wins"
-                , plot_bgcolor="#fff"
-                , font=dict(
-                    family="Courier New, monospace",
-                    size=12,
-                    color="RebeccaPurple"
-                )
-                , autosize=False
-                , width=400
-                , height=110
-                , margin=dict(
-                    l=50,
-                    r=20,
-                    b=0,
-                    t=0
-                    # pad=4
-                ),
-                yaxis=dict(
-                    visible=False, showticklabels=False
-                )
-            )
-            
-            # fig.update_yaxes()
             list_group = dbc.ListGroup(
                 [
                     dbc.ListGroupItem([
