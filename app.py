@@ -11,7 +11,7 @@ url_theme2 = dbc.themes.DARKLY
 # meta_tags are required for the app layout to be mobile responsive
 dbc_css = (
     "https://cdn.jsdelivr.net/gh/AnnMarieW/dash-bootstrap-templates/dbc.min.css",
-    "https://use.fontawesome.com/releases/v5.10.2/css/all.css",
+    # "https://use.fontawesome.com/releases/v5.10.2/css/all.css",
 )
 
 server = Flask(__name__)
