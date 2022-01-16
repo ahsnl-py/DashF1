@@ -150,16 +150,17 @@ def generate_laps_stats(df):
 get_sl = get_season_list_year()
 dropdown_year_cons = html.Div(
     [
-        html.H6("Select Year", className="text-light"),
+        html.H6("Select Year", className="text-dark"),
         dcc.Dropdown(
             id="year-input-seasons",
             options=[
                 {"label": i, "value": i} for i in get_sl
             ],
-            value=2016,
+            value=2019,
         ),
     ]
 )
+
 
 tabs = html.Div([
         dbc.Tabs([
@@ -178,23 +179,36 @@ tabs = html.Div([
 CONTENT EXPORT LAYOUT
 """
 layout = html.Div([
-    dbc.Container([
-            dbc.Alert([
-                    html.Div(
-                        [
-                            html.H4("F1 Statics by seasons"),
-                            html.H6("Full breakdown of drivers and constructors, points and current positions."),
-                        ], 
-                        className="rounded bg-light text-dark p-2 mb-0"
+    dbc.Container(
+        [
+            html.Div(
+                [
+                    html.Hr(style={"border":"2px solid #e10600"}),
+                    html.H1(
+                        ["F1 Statics by Seasons"], 
+                        style={
+                            "text-align":"left", 
+                            "font-family":"F1-Bold",
+                        }
                     ),
-                    html.Div(dropdown_year_cons, className="my-2"),
-                ], 
-                color="#2C3E50", className="mt-4"
+                    html.H6(
+                        "Full breakdown of drivers and constructors, points and current positions.",
+                        style={
+                            "text-align":"left", 
+                            "font-family":"F1-Reg",
+                        }
+                    ),
+                    html.Hr(style={"border":"2px solid #e10600"}),
+                    html.Div(dropdown_year_cons, className="my-3 p-2"),
+                    # html.Div(card_year)
+                ],
+                className="my-4"
             ),
-            html.Div([tabs], className="mt-5"),
+            html.Div([tabs], className="mt-1"),
         ]
     )
 ])
+
 
 @app.callback(
     Output("content", "children")

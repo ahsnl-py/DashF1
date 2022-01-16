@@ -217,6 +217,7 @@ card_content = [
     ),
 ]
 
+
 """
 CONTENT SECTIONS FOR DRIVERS: 
     wrap variable: dropdown_driver, dropdown_year, tab_dcss -> layout 
@@ -311,39 +312,68 @@ tab_tcss = html.Div(children=[
 EXPORTED CONTENT TO index
 """
 layout = dbc.Container([
-        dbc.Row([
-            dbc.Col(
-                    dbc.Card(card_content, color="light", className="shadow")
-                ),
-        ]),
-        # mid: driver 
-        html.Div(children=[
-            html.P("Driver current standings", className="h3 my-4 fst-normal")
-        ]),
+        # dbc.Row([
+        #     dbc.Col(
+        #             dbc.Card(card_content, color="light", className="shadow")
+        #         ),
+        # ]),
+        # mid: driver
+        html.Hr(style={"border":"2px solid #e10600"}),
+        html.H1(
+            ["Season's statistics of race resutls"], 
+            style={
+                "text-align":"left", 
+                "font-family":"F1-Bold",
+            }
+        ),
+        html.H6(
+            "Full breakdown of drivers, points and current positions. Follow your favourite F1 drivers on and off the track.",
+            style={
+                "text-align":"left", 
+                "font-family":"F1-Reg",
+            }
+        ),
+        html.Hr(style={"border":"2px solid #e10600"}),
+        html.H4(
+            "Driver standings by Year", 
+            style={
+                "text-align":"center", 
+                "font-family":"F1-Reg",
+                "padding-top": "30px",
+            }
+        ),
+        html.Hr(style={"border": "2px solid rgb(20 17 17)"}),
         dbc.Row(children=
-        [
-            dbc.Col(dropdown_year),
-            dbc.Col(dropdown_driver)
-        ]),
+            [
+                dbc.Col(dropdown_year),
+                dbc.Col(dropdown_driver)
+            ]
+        ),
         dbc.Row(
-            [tab_dcss] #content drivers 
+            dbc.Card([tab_dcss], body=True) #content drivers 
             ,className="mt-4 pd-2"
         ),
         # end: team 
-        html.Div(children=[
-            html.P("Team current standings", className="h3 my-4 fst-normal")
-        ]),
+        html.H4(
+            "Team standings by Year", 
+            style={
+                "text-align":"center", 
+                "font-family":"F1-Reg",
+                "padding-top": "30px",
+            }
+        ),
+        html.Hr(style={"border": "2px solid rgb(20 17 17)"}),
         dbc.Row(dropdown_year_cons),
         dbc.Row(
-            [tab_tcss] #content team 
-            ,className="my-4"
+            dbc.Card( [tab_tcss] , body=True), #content team 
+            className="my-4"
         ),
     ], className="mt-4"
 )
 
 
 """
-CALLBACK FOR DRRIVERS: 
+CALLBACK FOR DRIVERS: 
     This callback takes the 'active_tab', 'year', 'drivers' property as input
     main callback: 
         > render_tab_content 

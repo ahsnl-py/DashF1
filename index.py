@@ -9,7 +9,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 
 from app import app, server 
-from apps import home, drivers, seasons
+from apps import seasons_stats, gp_stats, schedule, driver_stats #tracks
 
 
 PLOTLY_LOGO = "https://images.plot.ly/logo/new-branding/plotly-logomark.png"
@@ -23,8 +23,8 @@ content_nav = dbc.Row(
             [
                 dbc.NavItem(dbc.NavLink("Home", active=True, href="/")),
                 dbc.NavItem(dbc.NavLink("Driver", active=True, href="/drivers")),
-                dbc.NavItem(dbc.NavLink("Seasons", active=True, href="/seasons")),
-                dbc.NavItem(dbc.NavLink("Disabled", disabled=True, href="#")),
+                dbc.NavItem(dbc.NavLink("GP Stats", active=True, href="/gp-stats")),
+                dbc.NavItem(dbc.NavLink("Season Stats", active=True, href="/seasons-stats")),
                 dbc.DropdownMenu(
                     [dbc.DropdownMenuItem("Item 1"), dbc.DropdownMenuItem("Item 2")],
                     label="Dropdown",
@@ -91,11 +91,13 @@ def toggle_navbar_collapse(n, is_open):
               [Input('url', 'pathname')])
 def display_page(pathname):
     if pathname == "/":
-        return home.layout
+        return schedule.layout #temp home
     elif pathname == '/drivers':
-        return drivers.layout
-    elif pathname == '/seasons':
-        return seasons.layout
+        return driver_stats.layout
+    elif pathname == '/gp-stats':
+        return gp_stats.layout
+    elif pathname == "/seasons-stats":
+        return seasons_stats.layout
     else:
         return "404 Page Error! Please choose a link"
 
