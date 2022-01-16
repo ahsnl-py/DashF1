@@ -9,9 +9,8 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 from datetime import datetime
+from flat_file_reader import schedule_df
 
-
-schedule_df = pd.read_csv(".\datasets\schedule_2022.csv")
 
 future = datetime(2022, schedule_df['month_index'][0], schedule_df['end_date'][0], 0, 0, 0)
 now  = datetime.now()
