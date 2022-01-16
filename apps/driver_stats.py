@@ -1,6 +1,6 @@
 from dash.exceptions import PreventUpdate
 import dash_bootstrap_components as dbc
-from dash import html, dcc, Input, Output, State, dash_table
+from dash import html, dcc, Input, Output, State, MATCH
 from app import app, db
 
 import pandas as pd
@@ -53,18 +53,42 @@ def get_driver_overview_stats(yr):
     splitted = df_dsy['driver'].str.split()
     df_dsy['firstname'] = splitted.str[0]
     
-    return generate_driver_card(df_dsy)
+    return df_dsy
+
+def get_driver_stats_by_name(name):    
+    query = f"""
+                SELECT driver_fullname 
+                    , driver_team 
+                    , total_first_place 
+                    , total_second_place 
+                    , total_third_place 
+                    , total_points 
+                    , average_point_gp 
+                    , total_count_podiums
+                    , win_ration 
+                    , count_fastest_lap 
+                    , total_lap_raced 
+                    , total_lap_not_raced
+                    , gp_enter
+                FROM udf_driver_stats(name=>'{name}')
+            """                   
+    df_dsy = pd.read_sql_query(query, con=db.engine)
+
+    return df_dsy
+
 
 def generate_driver_card(df):
     
+    df = get_driver_overview_stats(df)
+
     driver_card = []
     for i in range(0, len(df.index), 4):
         card_col = []
 
         for j in range(i, i+4):
             card = []
-            
 
+            
             if j < len(df.index):
                 d_name = df.loc[j, 'driver']
                 d_point = df.loc[j, 'points']
@@ -75,11 +99,91 @@ def generate_driver_card(df):
                 d_color_team = df.loc[j, 'colorhex']
                 d_num = df.loc[j, 'drivernumber']
                 d_wins = df.loc[j, 'win_total']
+                d_fname = df.loc[j, 'firstname']
 
                 if d_color_team == 'no_color':
                     border_col = {"border":f"2px solid #e10600"}
                 else:
                     border_col = {"border":f"2px solid {d_color_team}"}
+
+                df_ds = get_driver_stats_by_name(d_name)
+                content_driver_stats = dbc.ListGroup(
+                    [
+                        dbc.ListGroupItem([
+                                html.H6(f"Grand Prix Enter"),
+                                html.P(f"{df_ds.iloc[0]['gp_enter']}", style={'marginBottom': 0}),
+                            ], 
+                            className="d-flex justify-content-between align-items-center",
+                        ),
+                        dbc.ListGroupItem([
+                                html.H6(f"Total Podiums"),
+                                html.P(f"{df_ds.iloc[0]['total_count_podiums']}", style={'marginBottom': 0}),
+                            ], 
+                            className="d-flex justify-content-between align-items-center",  
+                        ),
+                        dbc.ListGroupItem([
+                                html.H6(f"Total Points"),
+                                html.P(f"{df_ds.iloc[0]['total_points']} ({df_ds.iloc[0]['average_point_gp']} avg)", style={'marginBottom': 0}),
+                            ], 
+                            className="d-flex justify-content-between align-items-center",
+                        ),
+                        dbc.ListGroupItem([
+                                html.H6(f"Total Wins"),
+                                html.P(f"{df_ds.iloc[0]['total_first_place']}", style={'marginBottom': 0}),
+                            ], 
+                            className="d-flex justify-content-between align-items-center",
+                        ),
+                        dbc.ListGroupItem([
+                                html.H6(f"Win Ratio"),
+                                html.P(f"{df_ds.iloc[0]['win_ration']}", style={'marginBottom': 0}),
+                            ], 
+                            className="d-flex justify-content-between align-items-center",
+                        ),
+                        
+                    ],
+                    flush=True,
+                )
+
+                offcanvas = html.Div(
+                    [
+                        dbc.Button(
+                            f"{d_fname} stats", size="sm",
+                            id={
+                                "type":"open-offcanvas",
+                                "index": j
+                            }, 
+                            n_clicks=0
+                        ),
+                        # dbc.Button(
+                        #     "Open Offcanvas", id={
+                        #         "type":"open-offcanvas",
+                        #         "index": j
+                        #     }, 
+                        #     n_clicks=0
+                        # ),
+                        dbc.Offcanvas(
+                            html.Div(
+                                [
+                                    html.Hr(style={f"border": "1px solid rgb(20 17 17)"}),
+                                    html.H3(
+                                        f"{d_name}",
+                                        style={
+                                            "text-align":"center", 
+                                            "font-family":"F1-Reg",
+                                        }),
+                                    html.Hr(style={f"border": "1px solid rgb(20 17 17)"}),
+                                    content_driver_stats
+                                ]
+                            ),
+                            id={
+                                'type': 'offcanvas-output',
+                                'index': j
+                            },
+                            title=f'Driver Stats',
+                            is_open=False,
+                        ),
+                    ]
+                )
 
                 card = dbc.Card(children=
                     [
@@ -109,16 +213,22 @@ def generate_driver_card(df):
                                 html.Div(
                                     [
                                         html.H6(f"{d_num}",style={"font-family":"F1-Reg"}),
-                                        html.H6(f"{d_team}",style={"font-family":"F1-Reg", "font-size":"0.9rem"}),
+                                        html.P([f"{d_nationality}"], style={"font-family":"F1-Reg", "font-size":"0.8rem"}),
                                     ],
                                     className="d-flex justify-content-between align-items-center mb-1",
                                 ),
-                                html.P([f"{d_nationality}"], style={"font-family":"F1-Reg", "font-size":"0.8rem"}),
+                                html.Div(
+                                    [
+                                        html.H6(f"{d_team}",style={"font-family":"F1-Reg", "font-size":"0.9rem"}),
+                                        html.Div(offcanvas),
+                                    ],
+                                    className="d-flex justify-content-between align-items-center mb-1",
+                                )
                             ]
                         ),
                     ],
                     style=border_col, 
-                    # className="shadow"
+                    # className="w-100 hover-shadow"
                 )    
 
             card_col.append(
@@ -187,37 +297,29 @@ layout = html.Div([
     
 ])
 
+"""
+CALLBACK: to render all driver card based on year input
+"""
+
 @app.callback(
-    Output('driver-cards', 'children'),
+    Output('driver-cards', 'children'),    
     Input('session-year-input', 'value'),
 )
 def get_card_layout(year):
-    cards_driver = get_driver_overview_stats(year)
+    cards_driver = generate_driver_card(year)
     return cards_driver
 
+"""
+PATTERN-MATCHING CALLBACK: each canvas will open according to the index of the card in the layout. 
+"""
+@app.callback(
+    Output({'type': 'offcanvas-output', 'index': MATCH}, 'is_open'),
+    Input({'type': 'open-offcanvas', 'index': MATCH}, 'n_clicks'),
+    State({'type': 'offcanvas-output', 'index': MATCH}, 'is_open'),
+)
+def display_output(n1, is_open):
 
-# header = dbc.Alert(
-#                 [
-#                     html.Div(
-#                         [
-#                             html.H4(
-#                                 "Check out this season's official!",
-#                                 style={
-#                                     "text-align":"left", 
-#                                     "font-family":"F1-Bold",
-#                                 }
-#                             ),
-#                             html.H6(
-#                                 "Full breakdown of drivers, points and current positions. Follow your favourite F1 drivers on and off the track.",
-#                                 style={
-#                                     "text-align":"left", 
-#                                     "font-family":"F1-Reg",
-#                                 }
-#                             ),
-#                         ], 
-#                         className="rounded bg-light text-dark p-2 my-2"
-#                     ),
-#                     html.Div(dropdown_year_cons, className="my-2"),
-#                     # html.Div(gp_slider, className="mt-4 text-light"),
-#                 ], color="#e10600", className="mt-4"
-#             )
+    if n1:
+        return not is_open
+    return is_open
+

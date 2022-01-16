@@ -36,20 +36,19 @@ for i in range(0, len(schedule_df.index), 4):
             card = dbc.Card(children=
                             [
                                 dbc.CardBody(children=
-                                    [html.H6(f"SESSION {j+1} "),
-                                    html.H3(f"{location}", style={"font-family":"F1-Bold"}),
+                                    [html.H3([f"{location}"], style={"font-family":"F1-Bold"}),
                                     html.H6([f"{month} {start_date}-{end_date}"],style={"font-family":"F1-Reg"}),
                                     html.P([f"{title}"], style={"font-family":"F1-Reg", "font-size":"0.8rem"})]
                                 ),
                             ],
-                    style={"border":"2px solid #e10600"}, className="shadow"
+                    style={"border":"2px solid #e10600"}
                     )
 
         card_cols.append(
-            dbc.Col(card)
+            dbc.Col(card, style={"padding-top":"0.5rem"})
         )
 
-    schedule_cards.append(dbc.Row(card_cols, className="mb-4"))
+    schedule_cards.append(dbc.Row(card_cols))
 
 layout = dbc.Container([
             dbc.Card(children=
